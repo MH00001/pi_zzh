@@ -891,13 +891,7 @@ export default function teamExtension(pi: ExtensionAPI) {
 			pi.appendEntry("team-route", { route, source: fromPlan ? "plan" : routeOverride });
 		}
 		if (!enabled) return;
-		return {
-			message: {
-				customType: "team-rules",
-				display: false,
-				content: `团队模式：你是协调者。当前任务 ID：${currentTaskId ?? "无"}。需要 Git 隔离时先用 team_workspace 创建任务，再用 team_run 分派明确任务；已有任务用 /team task select 选择。子成员不共享主对话。scout 调研、planner 规划、worker 实施、reviewer 审查。只有 worker 能写入 writePaths 精确授权的文件；worker 默认暂存修改，任务成功且源文件未变化时才应用到任务 worktree。你与 worker 不要同时改文件。成员通过信箱通信，team_mail 查看待办后，再派收件人继续任务；禁止无限互相转交。最多进行 3 轮协作，再向用户汇报结果或阻塞。测试命令由你在任务 worktree 执行。检查点用 team_workspace 创建；合入主目录只能由用户执行 /team task apply。不要把失败或未验证的任务算作完成。`,
-			},
-		};
+		event.systemPromptOptions.sections.team_rules = `团队模式：你是协调者。当前任务 ID：${currentTaskId ?? "无"}。需要 Git 隔离时先用 team_workspace 创建任务，再用 team_run 分派明确任务；已有任务用 /team task select 选择。子成员不共享主对话。scout 调研、planner 规划、worker 实施、reviewer 审查。只有 worker 能写入 writePaths 精确授权的文件；worker 默认暂存修改，任务成功且源文件未变化时才应用到任务 worktree。你与 worker 不要同时改文件。成员通过信箱通信，team_mail 查看待办后，再派收件人继续任务；禁止无限互相转交。最多进行 3 轮协作，再向用户汇报结果或阻塞。测试命令由你在任务 worktree 执行。检查点用 team_workspace 创建；合入主目录只能由用户执行 /team task apply。不要把失败或未验证的任务算作完成。`;
 	});
 	pi.registerTool({
 		name: "plan_progress",

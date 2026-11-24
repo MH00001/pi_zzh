@@ -123,32 +123,35 @@ function harness() {
 }
 
 describe("team extension orchestration", () => {
-	it("routes normal prompts before the main agent and honors manual overrides", async () => {
+	it("routes normal prompts and adds coordinator rules only to multi system prompts", async () => {
 		const h = harness();
+		const start = async (prompt: string) => {
+			const systemPromptOptions: { sections: Record<string, string> } = { sections: {} };
+			const result = await h.fire("before_agent_start", {
+				type: "before_agent_start",
+				messageType: "user",
+				prompt,
+				systemPromptOptions,
+			});
+			return { systemPromptOptions, result };
+		};
 		h.routeComplete.mockResolvedValue({ stopReason: "stop", content: [{ type: "text", text: '{"route":"multi"}' }] });
-		await h.fire("before_agent_start", { type: "before_agent_start", messageType: "user", prompt: "你好" });
+		const single = await start("你好");
 		expect(h.active()).not.toContain("team_run");
-		await h.fire("before_agent_start", {
-			type: "before_agent_start",
-			messageType: "user",
-			prompt: "调查两个模块并分工修复",
-		});
+		expect(single.systemPromptOptions.sections).not.toHaveProperty("team_rules");
+		const multi = await start("调查两个模块并分工修复");
 		expect(h.active()).toContain("team_run");
+		expect(multi.systemPromptOptions.sections.team_rules).toContain("你是协调者");
+		expect(multi.result).toBeUndefined();
 		expect(h.entries.at(-1)?.data).toEqual({ route: "multi", source: "auto" });
 		await h.command("solo");
-		await h.fire("before_agent_start", {
-			type: "before_agent_start",
-			messageType: "user",
-			prompt: "调查两个模块并分工修复",
-		});
+		const forcedSingle = await start("调查两个模块并分工修复");
 		expect(h.active()).not.toContain("team_run");
+		expect(forcedSingle.systemPromptOptions.sections).not.toHaveProperty("team_rules");
 		await h.command("auto");
-		await h.fire("before_agent_start", {
-			type: "before_agent_start",
-			messageType: "user",
-			prompt: "调查两个模块并分工修复",
-		});
+		const routedMulti = await start("调查两个模块并分工修复");
 		expect(h.active()).toContain("team_run");
+		expect(routedMulti.systemPromptOptions.sections.team_rules).toContain("你是协调者");
 	});
 
 	it("requires approval for a planner draft and new approval after replanning", async () => {
